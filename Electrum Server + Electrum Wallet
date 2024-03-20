@@ -1,0 +1,240 @@
+
+    		INSTALLARE ELCTRUM SERVER - ELECTRS -
+			solo DOPO aver sincronizzato il FullNode
+
+N.B. Si dà per scontato che il FullNode giri sotto TOR o che comunque TOR sia già stato installato correttamente in tutte le macchine che utilizzeremo.
+
+Set up della guida :
+- FullNode installato su MiniPc connesso alla rete LAN domestica (versione Ubuntu 23.04)
+- Aggiungeremo Electrs al server dove gira il FullNode
+- Installeremo il Wallet Electrum su pc portatile (versione Ubuntu 22.04.3 LTS)  
+		
+https://github.com/chris-belcher/electrum-personal-server
+https://www.youtube.com/watch?v=mbG7hBMWQrs 
+
+Lavoreremo sempre dal pc portatile connettendoci al FullNode tramite la rete domestica.
+Aprire il terminale e accedere al server del FullNode (dove è installato BitcoinCore) 
+  	ssh paperino@192.168.55.31
+installare i seguenti 5 pacchetti (che serviranno in seguito durante l’installazione)
+  	sudo apt install cargo clang cmake git curl
+(se fossero già presenti, una volta lanciato il comando li aggiornerà all’ultima versione)
+Aprire un browser (meglio se Onion sotto TOR) e andare al GitHub dello sviluppatore
+  	https://github.com/romanz/electrs
+verificare l’ultima versione, cliccare su CODE e copiare il link dell’archivio (repository) poi clonarlo sul terminale nella home ( cd ) specificando l’ultima versione
+	  git clone --branch v0.10.0 https://github.com/romanz/electrs.git
+se si vuole ordinare meglio si può anche clonare in un altra cartella apposita (mkdir ¨nome¨).
+Per verificare le firme, tornare alla pagina GitHub e cliccare sul nome in alto a sx dello sviluppatore ¨romanz” , poi sul link del suo sito (https://romanzey.de) ed infine sul link della sua chiave pgp ( pgp tra parentesi); copiare quindi l’indirizzo (https://romanzey.de/pgp.txt)
+Tornare sul terminale (che sarà rimasto nella directory del download di Electrs) ed importare la chiave
+	  curl https://romanzey.de/pgp.txt | gpg --import  
+quindi verificare il download 
+	  git verify-tag v0.10.0
+dovrà risultare Good signature from ¨Roman Zeyde... 
+Ora che siamo sicuri del file possiamo installare Electrs con il comando
+	  cargo build --loked --release
+Inizierà l’installazione che durerà un po di tempo a seconda della connessione e della macchina.
+Finita l’installazione, creare un collegamento simbolico con il file binario di Electrs (situato in ...target/release/ ) nella cartella dei file binari dove 
+ci sono quelli di BitcoinCore ( cd /usr/local/bin/ ), in questo modo ogni volta che andremo a fare aggiornamenti non ci saranno problemi.
+	  sudo ln -s <path del file binario electrs> /usr/local/bin/electrs
+Il <path del file binario electrs> é il percorso del file electrs appena installato 
+( es  /home/paperino/downloads/electrs/target/release/electrs )
+Per verificare il collegamento creato digitare
+	  ls -l /usr/local/bin/
+e deve comparire electrs con il suo path (percorso)
+Per verificare l’installazione corretta tornare nella Home ( cd ) e digitare
+	  electrs --version
+Se compare la versione scaricata è tutto ok.
+Creare una cartella dove scaricare tutti i file necessari (nella Home del dispositivo, se avete spazio o su un HD esterno. Nel caso della guida sarà la home)
+	  mkdir .electrs
+Quindi creare il file di configurazione 
+	  sudo nano .electrs/electrs.conf
+aperto il file copiate le righe seguenti (non le parentesi)
+
+    network = "bitcoin" 
+	  daemon_dir= "/media/usbdisk/bitcoin"              (directory dove è scaricata la BlockChain del nodo)
+	  daemon_rpc_addr = "127.0.0.1:8332" 
+	  daemon_p2p_addr = "127.0.0.1:8333" 
+	
+	  electrum_rpc_addr = "127.0.0.1:50001" 
+	  db_dir = "/home/paperino/.electrs/db"             (directory dove scaricare i dati del server)
+	  index_lookup_limit = 1000 
+	
+	  log_filters = "INFO" 
+	  timestamp = true	
+
+
+salvate e chiudete.
+Ora possiamo avviare il server Electrs con il comando
+  	electrs --conf .electrs/electrs.conf
+Il server si avvierà e la prima volta impiegherà parecchio tempo (ore) per sincronizzarsi.
+Per interrompere 
+  	ctrl+c
+Per verificare che il server Electrs stia utilizzando la porta 50001 (quella controllata da TOR)  
+		lsof -i -P -n | grep LISTEN | grep 50001
+il comando va a visualizzare tutti i processi che usano la porta 50001 (se eseguito sulla stessa macchina ¨local host¨)
+
+Una volta sincronizzato controllare che nel file bitcoin.conf  ( cd .bitcoin/bitcoin.conf ) siano commentati ( mettere davanti alla riga  #  )
+
+	#dbcache=2048
+	#blocksonly=1
+	#assumevalid=0
+
+Queste opzioni facilitano la sincronizzazione ma potrebbero andare in conflitto con Electrs. 
+
+
+          - installare ELECTRUM Wallet
+    https://www.youtube.com/watch?v=Auzqs4Qc9fI 
+
+Andare sulla macchina dove si vuole utilizzare il wallet (se il FullNode è installato su   Ubuntu server   utilizzare un altro pc in quanto non si avvierebbe la grafica del wallet )
+Da terminale creare una cartella dove installare Electrum wallet (esempio in Downloads)
+  	cd Downloads	   
+poi	
+    mkdir electrum
+Entrare nella cartella
+	  cd Downloads/electrum
+Aprire un Browser alla pagina di electrum.org sezione download
+	  https://electrum.org/#download  
+Selezionare il link della AppImage (di linux) con il tasto dx e copiare il link, poi sul terminare importarlo
+	  wget https://download.electrum.org/4.4.6/electrum-4.4.6-x86_64.AppImage
+Selezionare il link della firma dello sviluppatore ( a fianco della AppImage) ed importarla
+	  wget https://download.electrum.org/4.4.6/electrum-4.4.6-x86_64.AppImage.asc
+Scorrendo più in basso nella sezione “How to verify GPG signatures“ copiare il link della public key di ThomasV ed importarla
+	  wget https://raw.githubusercontent.com/spesmilo/electrum/master/pubkeys/ThomasV.asc
+controllare che ci siano i 3 file con il comando   
+    ls
+Installate il software gpg per poter verificare le firme
+	  sudo apt-get install gnupg2
+
+Importare la firma di ThomasV nel database
+	  gpg --import ThomasV.asc
+e verificare che sia stata messa nel database
+	  gpg --list-keys
+Verificare il file .asc dell’installer
+	  gpg --verify electrum-4.4.6-x86_64.AppImage.asc
+deve risultare   Firma valida da "Thomas Voegtlin...
+Cambiare la configurazione del file per renderlo eseguibile
+	  chmod +x electrum-4.4.6-x86_64.AppImage
+con il comando    ls   vedrete che avrà cambiato colore (verde)
+
+Per connettersi al FullNode de un altro pc o dall’esterno è necessario impostare il Firewall che deve bloccare tutte le connessioni in ingresso salvo dalle porte che indicheremo. 
+Dal terminale del FullNode digitiamo
+	  sudo ufw allow http		
+abilita connessione su porta 80 poi
+	  sudo ufw allow https		
+abilita connessione su porta 443, infine
+  	sudo ufw allow 22/tcp		
+attivare se è connesso un disco ssd
+Il Firewall è già preinstallato su Ubuntu ma disattivato, infatti digitando
+  	sudo ufw status
+sará inattivo. Per attivarlo digitare
+	  sudo ufw enable
+Ricontrollando lo status ora risulterà attivo e mostrerà le porte di accesso al server.
+
+Abbiamo ora bisogno di un servizio web che faccia da tramite tra Electrs ed Electrum Wallet e che vada a criptare (ssl) la comunicazione tra il PC ed il FullNode. 
+Useremo NGiNX.
+
+fonte:
+https://raspibolt.org/guide/raspberry-pi/security.html#prepare-nginx-reverse-proxy
+
+Dal terminale del FullNode creiamo le credenziali ssl digitando (modalita  ROOT)
+  	sudo openssl req -x509 -newkey rsa:4096 -days 365 -keyout /etc/ssl/private/nginx.key -out /etc/ssl/certs/nginx.crt -nodes -subj "/CN=localhost"
+Verificare che il certificato sia stato creato
+  	cat /etc/ssl/certs/nginx.crt
+Installare NGiNX
+	  sudo apt install nginx
+Andare nella directory dove é stato installato NGiNX
+	  cd /etc/nginx/
+aprire il file di configurazione
+	  sudo nano nginx.conf
+cancellare il contenuto e copiare
+
+	user www-data;
+	worker_processes 1;
+	pid /run/nginx.pid;
+	include /etc/nginx/modules-enabled/*.conf; 
+
+	events { 
+	  worker_connections 768; 
+	} 
+
+	stream { 
+	 ssl_certificate /etc/ssl/certs/nginx.crt;
+	 ssl_certificate_key /etc/ssl/private/nginx.key;
+	 ssl_session_cache shared:SSL:1m;
+	 ssl_session_timeout 4h;
+	 ssl_protocols TLSv1.2 TLSv1.3;
+	 ssl_prefer_server_ciphers on;
+	
+	 include /etc/nginx/streams-enabled/*.conf; 
+  } 
+
+
+
+Creare la cartella
+  	sudo mkdir streams-enabled
+poi
+	  cd streams-enabled
+infine creare il file di configurazione tra Electrs ed NGiNX
+	  sudo nano electrs.conf
+e copiare nel file
+	
+  upstream electrs {
+	 server 127.0.0.1:50001;
+	}
+
+	server {
+	 listen 50002 ssl;
+	 proxy_pass electrs;
+	}
+
+
+
+salvare ed uscire.
+Per testare che la configurazione di NGiNX sia corretta  tornare nella Home ( cd ) e digitare
+  	sudo nginx -t
+Deve risultare che la sintassi e il test sono corretti.
+A questo punto riavviare NGiNX per attivare le impostazioni
+  	sudo systemctl restart nginx.service
+e verificare con
+	  sudo systemctl status nginx.service
+per uscire     ctrl+c . 
+Per sapere quali servizi sono in ascolto e su quali porte, digitare
+  	sudo lsof -i -P -n | grep LISTEN
+Si vedrà che nginx è in ascolto sulla porta 50002 ed electrs sulla porta 50001
+Perfetto, prima di connetterci dal terminale del PC annotiamoci l’indirizzo ip del server
+  	ip a | grep dynamic
+sarà del tipo 192.168.1.92
+Impostare nel Firewall l’accesso alla porta 50002 solo dalla rete LAN
+  	sudo ufw allow from 192.168.1.0/24 to any port 50002 comment 'electrs from LAN'
+Vedere che la regola sia stata aggiunta 
+	   sudo ufw status
+
+Molto bene ora possiamo startare il Wallet Electrum da riga di comando aprendo il terminale nella cartella dove abbiamo scaricato la AppImage  
+    cd Downloads/electrum 
+Anche se la nostra configurazione prevede di connettersi da altro pc (della stessa rete domestica), vediamo le 3 casistiche per avviare Electrum
+
+-se Electrs è installato sulla stessa macchina
+  	./electrum-4.4.6-x86_64.AppImage --oneserver --server 127.0.0.1:50001:t
+-se Electrs è installato su un server connesso alla stessa rete domestica
+  	./electrum-4.4.6-x86_64.AppImage --oneserver --server 192.168.1.229:50002:s
+-se Electrs è installato su un server dall’altra parte del mondo
+  	./electrum-4.4.6-x86_64.AppImage --oneserver --server <indirizzo .onion del vostro 	server>:50002:s --proxy socks5:127.0.0.1:9050
+
+come si vede la prima parte rimane uguale (connessione SOLO verso 1 server) ma va a cambiare l’indirizzo del server in base a dove è collocato.
+
+
+
+
+COMANDI ELECTRUM SERVER
+
+per avviarlo:
+		sudo systemctl start electrs
+per vedere lo stato:
+		sudo systemctl status electrs
+per guardare il log:
+		sudo journalctl -f -u electrs
+per vedere l’indirizzo onion dei Electrs loggarsi come root (sudo -s)
+		cat /var/lib/tor/electrs/hostname
+
+
+altre fonti:
+https://medium.com/@smartmouse/installare-un-server-electrum-in-pochi-passi-251dec9a9b29
