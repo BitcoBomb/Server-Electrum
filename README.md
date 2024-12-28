@@ -6,4 +6,4 @@ portafogli con il proprio _Full Node_.
 
 In questa guida, ci occuperemo di aggiornare il nostro _Full Node_ installando _Electrs_ (o almeno, questo è l'obiettivo 😅).
 
-INIZIAMO >>> [1.ELECTRS](1.ELECTRS)
+INIZIAMO >>> [1.ELECTRS](1.ELECTRS.md)
